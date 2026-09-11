@@ -1,0 +1,592 @@
+{
+  "name": "Customer chat workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nI want your details so that our human support member will contact you. Should i start now?\n",
+        "options": {
+          "responseMode": "streaming"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -960,
+        -96
+      ],
+      "id": "65902903-105a-43fe-a531-823229c41560",
+      "name": "When chat message received",
+      "webhookId": "319f8723-cc44-4c7f-aeee-ade74639b50e"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -528,
+        128
+      ],
+      "id": "e2346c1e-3e88-4f99-acc0-a8c836ab24af",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are a professional customer contact collection assistant.\n\nYour ONLY task is to quickly collect these 7 customer details:\n\n1. First Name\n2. Last Name\n3. Email\n4. Mobile\n5. Landline\n6. Country\n7. State\n\nRULES:\n\n* Keep every reply very short and professional.\n* Ask for one or two missing details at a time.\n* Never ask for details that the customer already provided.\n* Do not ask for Address, City, ZIP Code, Alternate Mobile, Alternate Landline, or any other information.\n* Do not discuss or explain services in detail.\n* If the customer tells you what service they need, simply acknowledge it and say that a human representative will contact them regarding the request.\n* Then immediately continue collecting the missing contact details.\n* Do not waste time with greetings, small talk, or unnecessary questions.\n* Do not invent or guess any information.\n\nCOMPLETION:\n\nAs soon as all 7 required details have been collected:\n\n1. Confirm that all 7 details have been collected.\n2. Immediately call the \"CRM Automation\" workflow tool.\n3. Pass the current sessionId to the workflow tool.\n4. The CRM Automation workflow will retrieve the complete conversation from the CRM chat messages table and process the customer data.\n5. Do not ask the customer anything else.\n6. End the customer conversation immediately after the tool call.\n7. Your final customer-facing response must be short and professional.\n8. Never claim that the details were added or updated in the CRM unless the CRM automation actually confirms a successful CRM action.\n\nIMPORTANT TOOL RULE:\n\nThe \"CRM Automation\" workflow tool must be called ONLY when all 7 required customer details have been collected.\n\nDo NOT call the CRM Automation workflow before all 7 details are collected.\n\nDo NOT wait for another customer message after all 7 details are collected.\n\nThe CRM Automation workflow receives the sessionId and uses it to retrieve the complete customer conversation from the crm_chat_messages table.\n\nThe goal is to collect the 7 required details as quickly and naturally as possible, trigger CRM Automation immediately when complete, and then end the conversation.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -576,
+        -64
+      ],
+      "id": "d096286f-5a1b-4008-97ed-4ddcd07aad9b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "QwnsszBJ1mF577uf",
+          "mode": "list",
+          "cachedResultName": "crm_chat_messages",
+          "cachedResultUrl": "/projects/TnGq2Gqmm8DmdZ4v/datatables/QwnsszBJ1mF577uf"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.sessionId }}",
+            "role": "user",
+            "message": "={{ $json.chatInput }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -576,
+        -256
+      ],
+      "id": "2f52abcc-c1b2-47c1-9d0e-1527a7da9807",
+      "name": "Insert row"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "QwnsszBJ1mF577uf",
+          "mode": "list",
+          "cachedResultName": "crm_chat_messages",
+          "cachedResultUrl": "/projects/TnGq2Gqmm8DmdZ4v/datatables/QwnsszBJ1mF577uf"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $('When chat message received').item.json.sessionId }}",
+            "role": "assistant",
+            "message": "={{ $json.output }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        -64
+      ],
+      "id": "fb20ddc1-045a-4aa6-ad48-89e855c7789a",
+      "name": "Insert row1"
+    },
+    {
+      "parameters": {
+        "description": "When all 7 customer contact details are collected, send the complete customer conversation data to the CRM automation workflow for processing in Weboxic CRM.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DN4EbaAgzEra45Sc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DN4EbaAgzEra45Sc",
+          "cachedResultName": "CRM Automation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sessionId": "={{ $json.sessionId }}"
+          },
+          "matchingColumns": [
+            "sessionId"
+          ],
+          "schema": [
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -352,
+        128
+      ],
+      "id": "5ba422ed-22b2-46e1-9cec-49144069c25f",
+      "name": "Call n8n Workflow Tool"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-crm",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "e7be65a9-1c1d-439d-9834-8f124b17b9c0",
+      "name": "Webhook",
+      "webhookId": "4cd98590-5e89-44ce-9adf-056c9d33bc5c"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body ?? $json;\n\nconst firstName = body.first_name ?? '';\nconst lastName = body.last_name ?? '';\nconst email = body.email ?? '';\nconst mobile = body.mobile ?? '';\nconst landline = body.landline ?? '';\nconst country = body.country ?? '';\nconst state = body.state ?? '';\nconst serviceRequirement = body.service_requirement ?? '';\n\nconst sessionId =\n  body.session_id ??\n  body.sessionId ??\n  body.call?.id ??\n  `vapi-${Date.now()}`;\n\nconst message = JSON.stringify({\n  first_name: firstName,\n  last_name: lastName,\n  email,\n  mobile,\n  landline,\n  country,\n  state,\n  service_requirement: serviceRequirement,\n});\n\nreturn [\n  {\n    json: {\n      sessionId,\n      chatInput: message,\n      source: 'vapi',\n      first_name: firstName,\n      last_name: lastName,\n      email,\n      mobile,\n      landline,\n      country,\n      state,\n      service_requirement: serviceRequirement,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        -48
+      ],
+      "id": "55b1b57c-c83c-489e-8c31-10a9733e2449",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "QwnsszBJ1mF577uf",
+          "mode": "list",
+          "cachedResultName": "crm_chat_messages",
+          "cachedResultUrl": "/projects/TnGq2Gqmm8DmdZ4v/datatables/QwnsszBJ1mF577uf"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "session_id": "={{ $json.sessionId }}",
+            "role": "user",
+            "message": "={{ $json.chatInput }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "role",
+              "displayName": "role",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        -240
+      ],
+      "id": "cb1ff08f-7c62-4daf-9157-99caafcea4da",
+      "name": "Insert row2"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an internal CRM automation agent.\n\nThe customer conversation is handled entirely by the VAPI voice assistant. You must NOT communicate with the customer, ask questions, collect information, or attempt to continue the conversation.\n\nYour only job is to trigger the CRM Automation workflow using the provided sessionId.\n\nWhen customer data has been received and stored in crm_chat_messages:\n1. Immediately call the CRM Automation tool.\n2. Pass the current sessionId to the tool.\n3. Do not ask for any missing information.\n4. Do not modify or invent customer information.\n5. Do not call the CRM Automation tool more than once for the same execution.\n6. After the tool completes, return a short confirmation such as: CRM automation completed."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        576,
+        -64
+      ],
+      "id": "4f26c891-dae6-4656-b452-f92499a3774b",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Customer data received and CRM automation completed.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        928,
+        -48
+      ],
+      "id": "c7a9054e-72dd-4b19-bef7-5ae0dbf5fba1",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        144
+      ],
+      "id": "fc19b90a-2ba7-4392-8110-1fa422c5a21b",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cfAFR1MpllMxIF94",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        144
+      ],
+      "id": "126737fe-a85c-434e-8aa1-61f7446d00cb",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cfAFR1MpllMxIF94",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Use this tool only after the VAPI customer data has been fully collected and stored in crm_chat_messages. Trigger the CRM Automation workflow using the current sessionId so it can extract the latest customer details and create or update the CRM record. Do not use this tool before all required customer details have been collected.",
+        "workflowId": {
+          "__rl": true,
+          "value": "DN4EbaAgzEra45Sc",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DN4EbaAgzEra45Sc",
+          "cachedResultName": "CRM Automation"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sessionId": "={{ $json.sessionId }}"
+          },
+          "matchingColumns": [
+            "sessionId"
+          ],
+          "schema": [
+            {
+              "id": "sessionId",
+              "displayName": "sessionId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        144
+      ],
+      "id": "cc0982bc-5953-44f0-b942-6704c19edb6e",
+      "name": "Call 'CRM Automation'"
+    },
+    {
+      "parameters": {
+        "content": "The details collector for chat msgs.\nIt chats with the customers and stores all the conversation in a table, after collecting details it triggers the CRM management sub automation.\n",
+        "height": 656,
+        "width": 976,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        -336
+      ],
+      "id": "281ec561-23ff-40a7-87ee-54b99949eb58",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "The details collector for voice calls\nDetails we get from VAPI voice agent is collected here and filled in the table, after that this agent triggers the CRM management sub automation",
+        "height": 656,
+        "width": 1024,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        80,
+        -336
+      ],
+      "id": "99da2fc3-098c-427d-a748-87f046f2c71b",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Insert row1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call n8n Workflow Tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert row2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'CRM Automation'": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "17d65061-c7b7-43df-9e63-706986d00bf5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb226008a21e016342d28673100096be76d7155a1afa260b27d7b4da68fab5cf"
+  },
+  "nodeGroups": [],
+  "id": "yhBF6TkahNmJdOC1",
+  "tags": []
+}

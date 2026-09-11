@@ -1,0 +1,553 @@
+{
+  "name": "CRM Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "sessionId"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        544,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "QwnsszBJ1mF577uf",
+          "mode": "list",
+          "cachedResultName": "crm_chat_messages",
+          "cachedResultUrl": "/projects/TnGq2Gqmm8DmdZ4v/datatables/QwnsszBJ1mF577uf"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "keyValue": "={{ $json.sessionId }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        784,
+        -112
+      ],
+      "id": "7665e96e-dc16-4afc-82e5-8d95955bb73c",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $input.all().map(item => item.json).map(item => item.role + ': ' + item.message).join('\\n') }}",
+        "options": {
+          "systemMessage": "You are a CRM data extraction agent.\n\nYour job is to analyze the complete customer conversation provided to you and extract ONLY these 7 customer contact details:\n\n1. First Name\n2. Last Name\n3. Email\n4. Mobile\n5. Landline\n6. Country\n7. State\n\nRules:\n\n* Extract information only when the customer has actually provided it.\n* Never invent, assume, or guess any value.\n* If a value is missing, leave it empty.\n* Combine information from all messages in the conversation.\n* Ignore the AI assistant's questions unless they contain a customer-provided value.\n* Return the latest customer-provided value if the same field was provided more than once.\n* Do not extract address, city, ZIP/postal code, company, job title, website, or any other information.\n* Do not write explanations or conversational text.\n\nReturn the extracted information in exactly this structure:\n\nFirst Name:\nLast Name:\nEmail:\nMobile:\nLandline:\nCountry:\nState:\n\nAlso determine whether all 7 fields have been collected.\n\nAt the end, write:\nCOMPLETE: YES\nor\nCOMPLETE: NO\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        960,
+        176
+      ],
+      "id": "25ecf047-814d-48ef-b603-343580e3619f",
+      "name": "CRM Data Extractor"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        432
+      ],
+      "id": "4a5e0491-296f-4a1d-874f-9ef5f015e1bf",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cfAFR1MpllMxIF94",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f230dbfd-8671-499e-a0e7-f43ef856e380",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "COMPLETE: YES",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1248,
+        48
+      ],
+      "id": "53cd77e1-8744-4439-a45c-41587f4d0723",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $input.first().json.output }}",
+        "options": {
+          "systemMessage": "You are a CRM automation decision agent.\n\nThe previous agent has confirmed that all 7 required customer contact details have been collected.\n\nYour job is to prepare the customer data for CRM processing.\n\nRequired fields only:\n\n* First Name\n* Last Name\n* Email\n* Mobile\n* Landline\n* Country\n* State\n\nRules:\n\n* Use only information provided by the customer.\n* Never invent or guess missing information.\n* Preserve the customer's actual values.\n* Do not add address, city, ZIP code, company, or other fields.\n* Prepare the information for the next CRM automation step.\n* Do not communicate with the customer.\n* Do not claim that anything has been updated in the CRM.\n\nReturn the 7 fields clearly and nothing else.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1584,
+        176
+      ],
+      "id": "5e01b167-82ec-4a34-acec-0c009da99d16",
+      "name": "CRM Decision Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1600,
+        416
+      ],
+      "id": "16813ce0-0899-4cf0-976e-72bf169d4cd0",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cfAFR1MpllMxIF94",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.weboxic.com/api/v1/crm-contacts?page=1&per_page=15",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1888,
+        -112
+      ],
+      "id": "e84fbcb1-ab95-42fe-94d8-140bd9b58c47",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "islaiL766mYZ5Up0",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        -128
+      ],
+      "id": "132cbafe-4cbc-4de2-9e79-031116f16a17",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2064,
+        32
+      ],
+      "id": "1050960f-ff9a-4251-b039-bc47e5a55729",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nreturn items.map(item => {\n  const contact = item.json;\n\n  return {\n    json: {\n      crm_contact_id: contact.uuid ?? '',\n      crm_first_name: contact.first_name ?? '',\n      crm_last_name: contact.last_name ?? '',\n      crm_email: contact.email ?? '',\n      crm_mobile: contact.mobile ?? '',\n      crm_mobile_full: contact.mobile_full ?? '',\n      crm_landline: contact.landline ?? '',\n      crm_landline_full: contact.landline_full ?? '',\n      crm_mobile_country_code: contact.mobile_country_code ?? '',\n      crm_landline_country_code: contact.landline_country_code ?? ''\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        -112
+      ],
+      "id": "bcc37388-3396-4a8d-b190-718cf561be38",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=New customer data:\n{{ JSON.stringify($json.new_customer) }}\n\nExisting CRM contacts:\n{{ JSON.stringify($json.existing_contacts) }}",
+        "options": {
+          "systemMessage": "You are the final CRM automation agent.\n\nYou receive:\n\n1. NEW CUSTOMER DATA from the CRM Decision Agent.\n2. EXISTING CRM CONTACTS retrieved from Weboxic CRM.\n\nYour job is to compare the new customer with ALL existing CRM contacts and perform exactly ONE CRM action:\n\n* Update an existing contact, OR\n* Create a new contact.\n\nREQUIRED CUSTOMER FIELDS:\n\n* First Name\n* Last Name\n* Email\n* Mobile\n* Landline\n* Country\n* State\n\nIMPORTANT:\n\nThe NEW CUSTOMER DATA is the source of truth for the customer's current information.\n\nThe EXISTING CRM CONTACTS contain real CRM records and their real UUIDs.\n\nNever invent, guess, construct, or modify a CRM UUID.\n\nMATCHING PROCESS:\n\n1. Extract the customer's Mobile and Email from the NEW CUSTOMER DATA.\n2. Compare the Mobile against EVERY existing CRM contact.\n3. For phone comparison, ignore:\n\n   * spaces\n   * hyphens\n   * parentheses\n   * leading + sign\n4. If no Mobile match is found, compare Email against EVERY existing CRM contact.\n5. Email comparison must be case-insensitive and ignore surrounding spaces.\n6. A match by Mobile OR Email means the customer already exists.\n7. If there is no Mobile match AND no Email match, the customer is NEW.\n\nEXISTING CUSTOMER:\n\nIf a matching CRM contact is found:\n\n1. Identify the matching contact's actual CRM UUID from the existing CRM data.\n2. Call \"Update Contact\".\n3. Pass that exact existing CRM UUID as existing_contact_id.\n4. Pass the customer's latest available values for the 7 required fields.\n5. Do not create a new contact.\n6. Do not call \"Create Contact\".\n7. NEVER use a placeholder UUID.\n8. NEVER use values such as:\n\n   * unknown\n   * unknown_id\n   * null\n   * undefined\n   * fake UUID\n   * guessed UUID\n\nNEW CUSTOMER:\n\nIf NO existing CRM contact matches by Mobile or Email:\n\n1. Call \"Create Contact\".\n2. Pass the customer's available 7 required fields.\n3. Do not call \"Update Contact\".\n4. Do not provide existing_contact_id.\n5. Do not invent any CRM contact ID.\n\nTOOL RULES:\n\n* \"Create Contact\" is ONLY for customers with no Mobile or Email match.\n* \"Update Contact\" is ONLY for customers with a confirmed matching CRM contact.\n* Call exactly ONE of these tools.\n* Never call both tools for the same customer.\n* Never call Update Contact without a real UUID taken directly from the existing CRM contact data.\n* Never invent customer information.\n* Never invent CRM information.\n\nCUSTOMER DATA TO SEND:\n\nFor Create Contact use:\n\n* first_name\n* last_name\n* email\n* mobile\n* landline\n* country\n* state\n\nFor Update Contact use:\n\n* existing_contact_id\n* first_name\n* last_name\n* email\n* mobile\n* landline\n* country\n* state\n\nUse the exact values from the NEW CUSTOMER DATA.\n\nIMPORTANT:\n\nIf there is no confirmed existing CRM UUID, you MUST NOT call Update Contact.\n\nIf there is no confirmed Mobile or Email match, you MUST call Create Contact.\n\nDo not make decisions based on first name or last name alone.\n\nFINAL RESPONSE:\n\nAfter the CRM tool successfully completes, return only a short professional confirmation.\n\nDo not expose:\n\n* CRM IDs\n* API details\n* internal processing\n* tool names\n* existing CRM contact data\n* internal reasoning\n\nIf the CRM tool fails, return a short professional message saying that the CRM action could not be completed.\n\nNever claim success unless the CRM tool actually succeeds.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2416,
+        176
+      ],
+      "id": "965c4d91-aab3-4249-991a-656b433b8f2f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Create a new contact in Weboxic CRM ONLY when no existing CRM contact matches the customer's Mobile or Email. Do not use this tool if Mobile or Email matches an existing contact.",
+        "method": "POST",
+        "url": "https://api.weboxic.com/api/v1/crm-contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"first_name\": \"{{ $fromAI('first_name', 'Customer first name') }}\",\n  \"last_name\": \"{{ $fromAI('last_name', 'Customer last name') }}\",\n  \"email\": \"{{ $fromAI('email', 'Customer email') }}\",\n  \"mobile\": \"{{ $fromAI('mobile', 'Customer mobile number').replace(/[^0-9]/g, '') }}\",\n  \"landline\": \"{{ $fromAI('landline', 'Customer landline number').replace(/[^0-9]/g, '') }}\",\n  \"country\": \"{{ $fromAI('country', 'Customer country') }}\",\n  \"state\": \"{{ $fromAI('state', 'Customer state') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        2480,
+        432
+      ],
+      "id": "b0b95b54-c94f-48ef-abaf-2f17293a8ca9",
+      "name": "Create Contact",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "islaiL766mYZ5Up0",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        432
+      ],
+      "id": "dcd8d71b-403b-481e-9da5-7cff69d4f176",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cfAFR1MpllMxIF94",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Update an existing Weboxic CRM contact ONLY when the customer's Mobile or Email matches an existing CRM contact. Use the exact existing contact UUID. Never use this tool without a confirmed matching UUID.",
+        "method": "PUT",
+        "url": "=https://api.weboxic.com/api/v1/crm-contacts/{{ $fromAI('existing_contact_id', 'The UUID of the existing matching CRM contact') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"first_name\": \"{{ $fromAI('first_name', 'Customer first name') }}\",\n  \"last_name\": \"{{ $fromAI('last_name', 'Customer last name') }}\",\n  \"email\": \"{{ $fromAI('email', 'Customer email') }}\",\n  \"mobile\": \"{{ $fromAI('mobile', 'Customer mobile number').replace(/[^0-9]/g, '') }}\",\n  \"landline\": \"{{ $fromAI('landline', 'Customer landline number').replace(/[^0-9]/g, '') }}\",\n  \"country\": \"{{ $fromAI('country', 'Customer country') }}\",\n  \"state\": \"{{ $fromAI('state', 'Customer state') }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        2688,
+        448
+      ],
+      "id": "522d8ca8-1d54-45f5-9f56-90f8cb4c8e1f",
+      "name": "Update Contact",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "islaiL766mYZ5Up0",
+          "name": "Header Auth account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const crmData = $('CRM Decision Agent').first().json.output ?? '';\n\nconst existingContacts = $input.all().map(item => item.json);\n\nconst customer = {};\n\nfor (const line of crmData.split('\\n')) {\n  const separator = line.indexOf(':');\n\n  if (separator === -1) continue;\n\n  const key = line.slice(0, separator).trim();\n  const value = line.slice(separator + 1).trim();\n\n  if (key === 'First Name') customer.first_name = value;\n  if (key === 'Last Name') customer.last_name = value;\n  if (key === 'Email') customer.email = value;\n  if (key === 'Mobile') customer.mobile = value;\n  if (key === 'Landline') customer.landline = value;\n  if (key === 'Country') customer.country = value;\n  if (key === 'State') customer.state = value;\n}\n\nreturn [\n  {\n    json: {\n      new_customer: customer,\n      existing_contacts: existingContacts\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        -112
+      ],
+      "id": "18d669e3-5009-427e-b5a4-6d15965807c9",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "content": "Extracting customer's details from table",
+        "height": 752,
+        "width": 624,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        720,
+        -176
+      ],
+      "id": "850621c2-0a8b-48a2-ab0a-bdc0baf15e5e",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "This agent decides the new info is matching with previous customers or it's a new lead",
+        "height": 752,
+        "width": 496,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        -176
+      ],
+      "id": "39b9b395-1103-4f94-ba5e-4c91baf16d48",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "CRM manager, it updates the CRM",
+        "height": 752,
+        "width": 608,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2192,
+        -176
+      ],
+      "id": "db18642c-d662-428d-865c-670bc1a382a7",
+      "name": "Sticky Note2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "CRM Data Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CRM Data Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM Data Extractor": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "CRM Decision Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM Decision Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "CRM Decision Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Contact": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "640c4631-e29f-4180-be53-58da99c81f07",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bb226008a21e016342d28673100096be76d7155a1afa260b27d7b4da68fab5cf"
+  },
+  "nodeGroups": [],
+  "id": "DN4EbaAgzEra45Sc",
+  "tags": []
+}
